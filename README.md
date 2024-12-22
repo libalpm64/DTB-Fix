@@ -21,5 +21,8 @@ Common questions:
 Where's the internal / external?
 https://github.com/libalpm64/EAC-Driver the driver has built in CR3 fix by called the function inside EAC (it's not detected yet) I would suggest looking at this implementation for an internal / external.
 
+What's the discord link? 
+https://discord.gg/pZz8RjgV4s
+
 How do I use this?
 .-. If you don't know how to use this then you probally shouldn't be here, I would suggest you go buy instead or hire a developer.
