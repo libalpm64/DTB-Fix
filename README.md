@@ -15,14 +15,3 @@ VMM by PCILeech is now limited, requiring you to create a custom version of VMM.
 Due to the nature of EAC they are constantly testing things for example they lowered it to 500ms for testing on Rust but it lead to people crashing often so they reverted this change on November 18th after just a couple of hours. Creating a CR3 fix is quite difficult for beginners as there is no procure way of learning how to make it as there is few resources / few sources that actually have it working as they update it frequently.
 
 This repo serves as my implementation of it. It's not the best I made in an hour but for most p2c devs it takes them weeks or a whole new source.
-
-Common questions:
-
-Where's the internal / external?
-https://github.com/libalpm64/EAC-Driver the driver has built in CR3 fix by called the function inside EAC (it's not detected yet) I would suggest looking at this implementation for an internal / external.
-
-What's the discord link? 
-https://discord.gg/pZz8RjgV4s
-
-How do I use this?
-.-. If you don't know how to use this then you probally shouldn't be here, I would suggest you go buy instead or hire a developer.
