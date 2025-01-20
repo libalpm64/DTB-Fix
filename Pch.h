@@ -27,33 +27,6 @@
 #include <dwrite.h>
 #include <dwmapi.h>
 #include <ShellScalingApi.h>
-#ifdef DrawText
-#undef DrawText
-#endif
-#ifdef GetCurrentTime
-#undef GetCurrentTime
-#endif
-#ifdef GetObject
-#undef GetObject
-#endif
-#ifdef SendMessage
-#undef SendMessage
-#endif
-#ifdef GetUserName
-#undef GetUserName
-#endif
-#ifdef CreateFont
-#undef CreateFont
-#endif
-#ifdef Button
-#undef Button
-#endif
-#ifdef max
-#undef max
-#endif
-#ifdef min
-#undef min
-#endif
 #include <vmmdll.h>
 #define DEBUG_INFO
 #ifdef DEBUG_INFO
@@ -74,4 +47,3 @@
 #pragma comment(lib, "Shcore.lib")
 
 #include "Memory.h"
-#include "CheatFunction.h"
