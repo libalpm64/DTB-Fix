@@ -25,46 +25,66 @@ VOID cbAddFile(_Inout_ HANDLE h, _In_ LPSTR uszName, _In_ ULONG64 cb, _In_opt_ P
 bool Memory::FixCr3() {
     PVMMDLL_MAP_MODULEENTRY module_entry;
 
-    // Is this mapped? Check, If true we don't need to do it again.
     if (VMMDLL_Map_GetModuleFromNameU(this->vHandle, this->current_process.PID,
-        (LPSTR)this->current_process.process_name.c_str(), &module_entry, NULL)) {
+                                      (LPSTR)this->current_process.process_name.c_str(), &module_entry, nullptr)) {
         return true;
     }
 
     if (!VMMDLL_InitializePlugins(this->vHandle)) {
-        LOG("[-] Failed VMMDLL_InitializePlugins call\n");
+        LOG("[-] Failed to initialize VMMDLL plugins.\n");
         return false;
     }
 
-    auto start = std::chrono::steady_clock::now();
+    if (!WaitForProgressCompletion()) {
+        return false;
+    }
+
+    if (!ListProcInfoFiles()) {
+        return false;
+    }
+
+    return TryPatchDtb(module_entry);
+}
+
+bool Memory::WaitForProgressCompletion() {
+    auto start_time = std::chrono::steady_clock::now();
+    BYTE bytes[4] = {0};
+    DWORD bytes_read = 0;
+    
     while (true) {
-        BYTE bytes[4] = { 0 };
-        DWORD bytes_read = 0;
         auto nt = VMMDLL_VfsReadW(this->vHandle, (LPWSTR)L"\\misc\\procinfo\\progress_percent.txt", bytes, 3, &bytes_read, 0);
         if (nt == VMMDLL_STATUS_SUCCESS && atoi((LPSTR)bytes) == 100) {
-            break;
+            return true;
         }
-        if (std::chrono::steady_clock::now() - start > std::chrono::seconds(5)) {
-            LOG("[-] Timeout waiting for progress\n");
-            return false;
+
+        if (std::chrono::steady_clock::now() - start_time > std::chrono::seconds(5)) {
+            LOG("[-] Timeout waiting for progress.\n");
+            return false; 
         }
+
         std::this_thread::sleep_for(std::chrono::milliseconds(100));
     }
+}
 
-    VMMDLL_VFS_FILELIST2 VfsFileList = { VMMDLL_VFS_FILELIST_VERSION, 0, 0, cbAddFile };
+bool Memory::ListProcInfoFiles() {
+    VMMDLL_VFS_FILELIST2 VfsFileList = {VMMDLL_VFS_FILELIST_VERSION, 0, 0, cbAddFile};
     if (!VMMDLL_VfsListU(this->vHandle, (LPSTR)"\\misc\\procinfo\\", &VfsFileList)) {
+        LOG("[-] Failed to list files in procinfo.\n");
         return false;
     }
+    return true;
+}
 
-    std::vector<uint64_t> possible_dtbs;
+bool Memory::TryPatchDtb(PVMMDLL_MAP_MODULEENTRY& module_entry) {
     auto bytes = std::make_unique<BYTE[]>(cbSize);
     DWORD bytes_read = 0;
     auto nt = VMMDLL_VfsReadW(this->vHandle, (LPWSTR)L"\\misc\\procinfo\\dtb.txt", bytes.get(), cbSize - 1, &bytes_read, 0);
     if (nt != VMMDLL_STATUS_SUCCESS) {
+        LOG("[-] Failed to read DTB file.\n");
         return false;
     }
 
-
+    std::vector<uint64_t> possible_dtbs;
     std::istringstream iss(std::string(reinterpret_cast<char*>(bytes.get()), bytes_read));
     std::string line;
     while (std::getline(iss, line)) {
@@ -77,17 +97,16 @@ bool Memory::FixCr3() {
         }
     }
 
-
     for (const auto& dtb : possible_dtbs) {
         VMMDLL_ConfigSet(this->vHandle, VMMDLL_OPT_PROCESS_DTB | this->current_process.PID, dtb);
         if (VMMDLL_Map_GetModuleFromNameU(this->vHandle, this->current_process.PID,
-            (LPSTR)this->current_process.process_name.c_str(), &module_entry, NULL)) {
-            LOG("[+] Patched DTB\n");
+                                          (LPSTR)this->current_process.process_name.c_str(), &module_entry, nullptr)) {
+            LOG("[+] Patched DTB.\n");
             return true;
         }
     }
 
-    LOG("[-] Failed to patch module\n");
+    LOG("[-] Failed to patch DTB.\n");
     return false;
 }
 
